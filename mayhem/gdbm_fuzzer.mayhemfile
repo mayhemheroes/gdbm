@@ -1,0 +1,4 @@
+project: PROJECT
+target: gdbm_fuzzer
+cmds:
+- cmd: /out/gdbm_fuzzer
