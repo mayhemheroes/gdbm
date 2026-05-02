@@ -15,10 +15,35 @@
 ################################################################################
 
 FROM gcr.io/oss-fuzz-base/base-builder
-RUN apt-get -qq update && apt-get install -qq build-essential git autopoint automake autoconf bison flex libtool texinfo gettext
-COPY . gdbm
-RUN rm -rf gdbm/mayhem
-WORKDIR gdbm
+RUN apt-get -qq update && apt-get install -qq \
+    build-essential \
+    git \
+    autopoint \
+    automake \
+    bison \
+    flex \
+    libtool \
+    texinfo \
+    gettext
+RUN set -- $(apt-cache policy autoconf | \
+             sed -n -r -e "/^[[:space:]]+Candidate:[[:space:]]+/{" \
+                    -e "s///" \
+                    -e "s/-.*//" \
+                    -e "s/\\./ /g" \
+                    -e "p}"); \
+    if [ "$2" -ge 71 ]; then \
+       apt-get install -qq autoconf; \
+    else \
+       (cd /usr/src && \
+        curl -o autoconf-2.71.tar.gz https://ftp.gnu.org/gnu/autoconf/autoconf-2.71.tar.gz && \
+        tar xf autoconf-2.71.tar.gz && \
+        cd autoconf-2.71 && \
+        ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var && \
+        make install); \
+    fi
+RUN git clone --depth 1 https://git.gnu.org.ua/gdbm.git
+COPY fuzz $SRC/gdbm/fuzz
+WORKDIR $SRC/gdbm
 COPY mayhem/build.sh $SRC/
 
 ENV FUZZING_LANGUAGE=c
